@@ -1,0 +1,150 @@
+{
+  "custom": {},
+  "params": {
+    "source": "microphone"
+  },
+  "props": {
+    "defaultSize": {
+      "height": 600,
+      "width": 800
+    }
+  },
+  "root": {
+    "type": "ia.container.flex",
+    "meta": {
+      "name": "root"
+    },
+    "props": {
+      "direction": "column",
+      "style": {
+        "padding": "16px",
+        "gap": "12px"
+      }
+    },
+    "children": [
+      {
+        "type": "ia.display.label",
+        "meta": {
+          "name": "Title"
+        },
+        "position": {
+          "basis": "32px",
+          "shrink": 0
+        },
+        "props": {
+          "text": "Operator voice notes",
+          "style": {
+            "fontSize": "20px",
+            "fontWeight": "bold"
+          }
+        }
+      },
+      {
+        "type": "ia.input.dropdown",
+        "meta": {
+          "name": "SourcePicker"
+        },
+        "position": {
+          "basis": "36px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.value": {
+            "binding": {
+              "type": "property",
+              "config": {
+                "path": "view.params.source",
+                "bidirectional": true
+              }
+            }
+          }
+        },
+        "props": {
+          "placeholder": {
+            "text": "Audio source"
+          },
+          "options": [
+            {
+              "value": "microphone",
+              "label": "Microphone"
+            },
+            {
+              "value": "tab",
+              "label": "Browser tab / system audio"
+            },
+            {
+              "value": "mixed",
+              "label": "Microphone + browser tab"
+            }
+          ],
+          "style": {
+            "maxWidth": "320px"
+          }
+        }
+      },
+      {
+        "type": "voicetranscription.input.recorder",
+        "meta": {
+          "name": "VoiceRecorder"
+        },
+        "position": {
+          "basis": "320px",
+          "shrink": 0
+        },
+        "props": {
+          "pushToTalk": {
+            "enabled": true,
+            "key": "Space"
+          }
+        },
+        "events": {
+          "component": {
+            "onSubmitted": {
+              "config": {
+                "script": "\tsystem.perspective.print('Stored voice note %s' % event.id)"
+              },
+              "scope": "G",
+              "type": "script"
+            }
+          }
+        },
+        "propConfig": {
+          "props.audioSource": {
+            "binding": {
+              "type": "property",
+              "config": {
+                "path": "view.params.source"
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "ia.display.label",
+        "meta": {
+          "name": "LastStatus"
+        },
+        "position": {
+          "basis": "24px",
+          "shrink": 0
+        },
+        "propConfig": {
+          "props.text": {
+            "binding": {
+              "config": {
+                "expression": "'Status: ' + {../VoiceRecorder.props.status}"
+              },
+              "type": "expr"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "propConfig": {
+    "params.source": {
+      "paramDirection": "inout",
+      "persistent": true
+    }
+  }
+}

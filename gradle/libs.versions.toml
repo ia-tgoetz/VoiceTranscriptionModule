@@ -1,0 +1,22 @@
+[versions]
+# Compile against the floor we declare in requiredIgnitionVersion so we can't accidentally use newer APIs.
+ignition = "8.3.0"
+whisperJni = "1.7.1"
+dependencyCheck = "13.0.0"
+
+[libraries]
+ignition-common = { module = "com.inductiveautomation.ignitionsdk:ignition-common", version.ref = "ignition" }
+ignition-gateway-api = { module = "com.inductiveautomation.ignitionsdk:gateway-api", version.ref = "ignition" }
+ignition-designer-api = { module = "com.inductiveautomation.ignitionsdk:designer-api", version.ref = "ignition" }
+ignition-perspective-common = { module = "com.inductiveautomation.ignitionsdk:perspective-common", version.ref = "ignition" }
+ignition-perspective-gateway = { module = "com.inductiveautomation.ignitionsdk:perspective-gateway", version.ref = "ignition" }
+ignition-perspective-designer = { module = "com.inductiveautomation.ignitionsdk:perspective-designer", version.ref = "ignition" }
+
+whisper-jni = { module = "io.github.givimad:whisper-jni", version.ref = "whisperJni" }
+
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version = "5.11.4" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version = "1.11.4" }
+
+[plugins]
+ia-modl = { id = "io.ia.sdk.modl", version = "0.5.0" }
+dependency-check = { id = "org.owasp.dependencycheck", version.ref = "dependencyCheck" }

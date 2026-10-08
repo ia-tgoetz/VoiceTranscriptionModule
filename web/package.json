@@ -1,0 +1,34 @@
+{
+  "name": "@wargoetz/voicetranscription-perspective",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Perspective audio recorder component for the OfflineVoiceTranscription module",
+  "license": "UNLICENSED",
+  "scripts": {
+    "build": "webpack --mode production",
+    "build:dev": "webpack --mode development",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test test/pcm.test.ts test/transcript.test.ts"
+  },
+  "dependencies": {
+    "@inductiveautomation/perspective-client": "2.3.10"
+  },
+  "devDependencies": {
+    "@types/react": "18.0.26",
+    "css-loader": "^7.1.2",
+    "mini-css-extract-plugin": "^2.9.2",
+    "react": "18.2.0",
+    "sass": "^1.89.0",
+    "sass-loader": "^16.0.5",
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.8.3",
+    "webpack": "^5.99.9",
+    "webpack-cli": "^6.0.1"
+  },
+  "overrides": {
+    "axios": "^1.20.0",
+    "lodash": "^4.18.1",
+    "moment": "^2.31.0",
+    "@babel/runtime": "^7.28.4"
+  }
+}

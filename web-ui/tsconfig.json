@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+        "target": "es2019",
+        "module": "es2015",
+        "moduleResolution": "node",
+        "jsx": "react",
+        "lib": ["dom", "es2019"],
+        "strict": true,
+        "noUnusedLocals": true,
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "skipLibCheck": true,
+        "outDir": "dist"
+    },
+    "include": ["src/**/*.ts", "src/**/*.tsx"]
+}

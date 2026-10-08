@@ -1,0 +1,75 @@
+# Disposable test stack for the OfflineVoiceTranscription module.
+#   ./docker/fetch-model.sh            # once: Whisper ggml-tiny model -> docker/models/
+#   ./gradlew build                    # produces build/OfflineVoiceTranscription.unsigned.modl
+#                                      # (+ signed OfflineVoiceTranscription.modl when sign.props exists)
+#   VT_MODL=OfflineVoiceTranscription.modl docker compose ... up -d   # first install from the signed build
+# The mount only seeds the FIRST install; afterwards upgrade with
+#   python ../../shared/module-dev/install-modl.py build/OfflineVoiceTranscription.modl --url http://localhost:8090 --restart vt-gateway
+#   docker compose -f docker/docker-compose.yml up -d
+# Gateway: http://localhost:${VT_GATEWAY_PORT:-8090}  (admin / password)
+name: voicetranscription
+
+services:
+  gateway:
+    image: inductiveautomation/ignition:8.3.10
+    container_name: vt-gateway
+    ports:
+      - "${VT_GATEWAY_PORT:-8090}:8088"
+    environment:
+      ACCEPT_IGNITION_EULA: "Y"
+      GATEWAY_ADMIN_USERNAME: admin
+      GATEWAY_ADMIN_PASSWORD: password
+      IGNITION_EDITION: standard
+      TZ: UTC
+      DISABLE_QUICKSTART: "true"
+      # Third-party modules must be accepted before a gateway finishes commissioning.
+      ACCEPT_MODULE_LICENSES: com.inductiveautomation.connectors.mongodb,com.wargoetz.voicetranscription
+      ACCEPT_MODULE_CERTS: com.inductiveautomation.connectors.mongodb,com.wargoetz.voicetranscription
+    # Everything after "--" is handed to the JVM. Unsigned modules are for development gateways only.
+    command: >
+      -n vt-gateway
+      -m 2048
+      --
+      -Dignition.allowunsignedmodules=true
+      -Dignition.modules.install.unattended=true
+      -Dignition.modules.install.trust-unknown-certificates=true
+    volumes:
+      - vt-gateway-data:/usr/local/bin/ignition/data
+      # Modules, dropped where Ignition 8.3 looks for modules at startup. Our module requires IA's MongoDB
+      # Connector (it reuses the connector's connections instead of opening its own).
+      - ../build/${VT_MODL:-OfflineVoiceTranscription.unsigned.modl}:/usr/local/bin/ignition/user-lib/modules/OfflineVoiceTranscription.modl:ro
+      - ../module-init/MongoDB Connector-module.modl:/usr/local/bin/ignition/user-lib/modules/MongoDB Connector-module.modl:ro
+      # Whisper models: relative modelPath "voicetranscription/models/..." resolves against data/.
+      - ./models:/usr/local/bin/ignition/data/voicetranscription/models:ro
+      # Demo Perspective project with the Voice Recorder on a page.
+      - ./projects:/usr/local/bin/ignition/data/projects
+    depends_on:
+      - mongo
+      - mock-llm
+
+  mongo:
+    image: mongo:7
+    container_name: vt-mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: vt
+      MONGO_INITDB_ROOT_PASSWORD: vt-secret
+    ports:
+      - "${VT_MONGO_PORT:-27018}:27017"
+    volumes:
+      - vt-mongo-data:/data/db
+      - ./mongo-init:/docker-entrypoint-initdb.d:ro
+
+  mock-llm:
+    image: python:3.12-slim
+    container_name: vt-mock-llm
+    command: ["python", "/app/server.py"]
+    environment:
+      MOCK_LLM_KEY: test-llm-key
+    ports:
+      - "${VT_MOCK_LLM_PORT:-8011}:8000"
+    volumes:
+      - ../tests/mock_llm:/app:ro
+
+volumes:
+  vt-gateway-data:
+  vt-mongo-data:

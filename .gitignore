@@ -1,0 +1,28 @@
+# Gradle / build output
+.gradle/
+build/
+**/build/
+!gradle/wrapper/gradle-wrapper.jar
+CLAUDE.md
+# Node
+node_modules/
+
+# Python test env
+tests/.venv/
+__pycache__/
+.pytest_cache/
+
+# Test stack runtime data
+docker/models/*.bin
+docker/models/*.part
+docker/projects/.resources/
+
+# Signing material and local secrets - never commit
+*.p12
+*.jks
+*.pfx
+cert.pem
+keystore.*
+*.p7b
+sign.props
+.env

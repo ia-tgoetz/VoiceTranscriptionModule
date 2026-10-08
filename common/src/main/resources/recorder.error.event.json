@@ -1,0 +1,7 @@
+{
+    "type": "object",
+    "properties": {
+        "message": { "type": "string" },
+        "stage": { "type": "string", "description": "microphone | upload | transcribe | submit" }
+    }
+}

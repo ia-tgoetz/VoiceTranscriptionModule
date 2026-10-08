@@ -1,0 +1,130 @@
+{
+    "type": "object",
+    "properties": {
+        "enabled": {
+            "type": "boolean",
+            "description": "When false the recorder cannot be started and the transcript cannot be submitted.",
+            "default": true
+        },
+        "language": {
+            "type": "string",
+            "description": "ISO-639-1 language for this recorder (e.g. 'en', 'de'). Leave blank to use the gateway default / auto-detect setting.",
+            "default": ""
+        },
+        "audioSource": {
+            "type": "string",
+            "description": "What to record. 'microphone': the user's mic (echo cancellation removes speaker playback). 'tab': audio of a browser tab, window, or screen the user shares (Chrome/Edge desktop; the user must enable 'Also share tab audio'). 'mixed': microphone and shared tab audio, transcribed separately and labelled [Microphone] / [System audio] in the transcript.",
+            "enum": [
+                "microphone",
+                "tab",
+                "mixed"
+            ],
+            "default": "microphone"
+        },
+        "showTimestamps": {
+            "type": "boolean",
+            "description": "Prefix each transcript line with its time from the start of the recording, e.g. [00:05]. Each segment gets its own line. The timestamps are part of the stored transcript.",
+            "default": true
+        },
+        "sourceColors": {
+            "type": "object",
+            "description": "Colours of the [Microphone] / [System audio] labels and [mm:ss] timestamps in the transcript box (any CSS colour).",
+            "properties": {
+                "microphone": {
+                    "type": "string",
+                    "format": "color",
+                    "default": "#1d6fd8"
+                },
+                "system": {
+                    "type": "string",
+                    "format": "color",
+                    "default": "#c2410c"
+                },
+                "timestamp": {
+                    "type": "string",
+                    "format": "color",
+                    "default": "#6b7280"
+                }
+            },
+            "default": {
+                "microphone": "#1d6fd8",
+                "system": "#c2410c",
+                "timestamp": "#6b7280"
+            }
+        },
+        "chunkIntervalMs": {
+            "type": "number",
+            "description": "How often (ms) audio is sliced and uploaded for a partial transcript. 0 uses the gateway setting.",
+            "default": 0,
+            "minimum": 0
+        },
+        "pushToTalk": {
+            "type": "object",
+            "description": "Hold-to-record keyboard shortcut. Ignored while focus is inside a text field.",
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "default": true
+                },
+                "key": {
+                    "type": "string",
+                    "description": "KeyboardEvent.code of the push-to-talk key, e.g. 'Space', 'KeyR', 'F8'.",
+                    "default": "Space"
+                }
+            },
+            "default": {
+                "enabled": true,
+                "key": "Space"
+            }
+        },
+        "autoSubmit": {
+            "type": "boolean",
+            "description": "Submit as soon as recording stops instead of letting the user edit the transcript first.",
+            "default": false
+        },
+        "showSummary": {
+            "type": "boolean",
+            "description": "Show the LLM summary of the last submission under the transcript.",
+            "default": true
+        },
+        "placeholder": {
+            "type": "string",
+            "default": "Press the microphone (or hold Space) and start speaking..."
+        },
+        "transcript": {
+            "type": "string",
+            "description": "The transcript box (a running log). Recordings are appended; it is only emptied by the Clear button or by writing this property (e.g. \"\" from a script or binding). Submit saves only the text below the last '---- Submitted hh:mm:ss ----' divider.",
+            "default": ""
+        },
+        "status": {
+            "type": "string",
+            "description": "Read-only. idle | recording | transcribing | ready | submitting | submitted | error",
+            "enum": [
+                "idle",
+                "recording",
+                "transcribing",
+                "ready",
+                "submitting",
+                "submitted",
+                "error"
+            ],
+            "default": "idle"
+        },
+        "error": {
+            "type": "string",
+            "description": "Read-only. Last error message, blank when healthy.",
+            "default": ""
+        },
+        "lastSubmission": {
+            "type": "object",
+            "description": "Read-only. The document most recently stored in MongoDB (plus its _id).",
+            "default": {}
+        },
+        "style": {
+            "$ref": "urn:ignition-schema:schemas/style-properties.schema.json",
+            "default": {
+                "classes": ""
+            }
+        }
+    }
+}

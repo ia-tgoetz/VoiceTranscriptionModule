@@ -1,0 +1,12 @@
+{
+    "type": "object",
+    "properties": {
+        "id": { "type": "string", "description": "MongoDB _id of the inserted document" },
+        "timestamp": { "type": "string" },
+        "transcript": { "type": "string" },
+        "language": { "type": "string" },
+        "summary": { "type": "string" },
+        "user": { "type": "object" },
+        "device": { "type": "object" }
+    }
+}

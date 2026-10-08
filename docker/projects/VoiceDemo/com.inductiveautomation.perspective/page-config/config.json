@@ -1,0 +1,12 @@
+{
+  "pages": {
+    "/": {
+      "title": "Voice Notes",
+      "viewPath": "Exchange/VoiceDemo/Recorder"
+    },
+    "/source/:source": {
+      "title": "Voice Notes",
+      "viewPath": "Exchange/VoiceDemo/Recorder"
+    }
+  }
+}

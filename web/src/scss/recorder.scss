@@ -1,0 +1,223 @@
+// Uses Perspective theme variables so the recorder follows light/dark themes; literal fallbacks keep it
+// readable on custom themes that don't define them.
+.vt-recorder {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+    box-sizing: border-box;
+    font-family: inherit;
+    color: var(--neutral-90, #2b2b2b);
+
+    &__toolbar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    &__mic {
+        flex: 0 0 auto;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        border: 1px solid var(--border, #c4c4c4);
+        background: var(--neutral-10, #ffffff);
+        color: var(--callToAction, #2c6ecb);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+
+        &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        &--live {
+            background: var(--error, #d32f2f);
+            border-color: var(--error, #d32f2f);
+            color: #ffffff;
+            animation: vt-pulse 1.2s ease-in-out infinite;
+        }
+    }
+
+    &__status {
+        font-size: 0.9em;
+        color: var(--neutral-70, #5c5c5c);
+    }
+
+    &__share {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85em;
+        color: var(--neutral-70, #5c5c5c);
+    }
+
+    &__share-label {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    &__link {
+        border: none;
+        background: none;
+        padding: 0;
+        color: var(--callToAction, #2c6ecb);
+        text-decoration: underline;
+        cursor: pointer;
+        font: inherit;
+
+        &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    }
+
+    // Transcript box = a transparent textarea over a backdrop that renders the same characters with
+    // coloured timestamps / source labels. Both layers must share identical box metrics and wrapping;
+    // only colour/background may differ (never weight, size, or padding on the spans).
+    &__editor {
+        position: relative;
+        flex: 1 1 auto;
+        min-height: 72px;
+        border: 1px solid var(--border, #c4c4c4);
+        border-radius: 4px;
+        background: var(--input, #ffffff);
+        overflow: hidden;
+
+        &:focus-within {
+            border-color: var(--callToAction, #2c6ecb);
+        }
+
+        &--readonly {
+            background: var(--neutral-20, #f3f3f3);
+        }
+    }
+
+    &__backdrop,
+    &__transcript {
+        position: absolute;
+        inset: 0;
+        box-sizing: border-box;
+        margin: 0;
+        padding: 6px 8px;
+        border: 0;
+        font: inherit;
+        line-height: 1.45;
+        letter-spacing: normal;
+        tab-size: 4;
+        white-space: pre-wrap;
+        overflow-wrap: break-word;
+        word-break: normal;
+        scrollbar-gutter: stable;
+    }
+
+    &__backdrop {
+        overflow: hidden;
+        color: var(--neutral-90, #2b2b2b);
+        pointer-events: none;
+    }
+
+    &__transcript {
+        width: 100%;
+        height: 100%;
+        overflow-y: auto;
+        resize: none;
+        outline: none;
+        background: transparent;
+        color: transparent;
+        caret-color: var(--neutral-90, #2b2b2b);
+
+        &::placeholder {
+            color: var(--neutral-60, #8a8a8a);
+        }
+
+        &::selection {
+            color: transparent;
+            background: rgba(44, 110, 203, 0.28);
+        }
+    }
+
+    &__actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+    }
+
+    &__button {
+        padding: 6px 14px;
+        border-radius: 4px;
+        border: 1px solid var(--border, #c4c4c4);
+        background: var(--neutral-10, #ffffff);
+        color: inherit;
+        cursor: pointer;
+
+        &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        &--primary {
+            background: var(--callToAction, #2c6ecb);
+            border-color: var(--callToAction, #2c6ecb);
+            color: #ffffff;
+        }
+    }
+
+    &__summary {
+        padding: 6px 8px;
+        border-left: 3px solid var(--callToAction, #2c6ecb);
+        background: var(--neutral-20, #f3f3f3);
+        font-size: 0.9em;
+    }
+
+    &__summary-title {
+        font-weight: 600;
+        margin-bottom: 2px;
+    }
+
+    &__button--danger {
+        border-color: var(--error, #d32f2f);
+        color: var(--error, #d32f2f);
+    }
+
+    &__warning {
+        color: var(--warning, #b26a00);
+        font-size: 0.9em;
+    }
+
+    &__error {
+        color: var(--error, #d32f2f);
+        font-size: 0.9em;
+    }
+}
+
+@keyframes vt-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.5); }
+    50% { box-shadow: 0 0 0 6px rgba(211, 47, 47, 0); }
+}
+
+// Transcript highlighting (inside .vt-recorder__backdrop).
+.vt-tx--timestamp {
+    color: var(--vt-color-timestamp, #6b7280);
+}
+
+.vt-tx--label {
+    border-radius: 3px;
+}
+
+.vt-tx--microphone {
+    color: var(--vt-color-mic, #1d6fd8);
+    background: color-mix(in srgb, var(--vt-color-mic, #1d6fd8) 14%, transparent);
+}
+
+.vt-tx--system {
+    color: var(--vt-color-system, #c2410c);
+    background: color-mix(in srgb, var(--vt-color-system, #c2410c) 14%, transparent);
+}
+
+.vt-tx--marker {
+    color: var(--neutral-50, #9aa0a6);
+}
