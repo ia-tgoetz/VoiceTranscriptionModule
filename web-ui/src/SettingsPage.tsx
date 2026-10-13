@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { MongoConnector, SecretProvider, SecretState, SecretUpdate, Settings, Status, Transcript, request } from "./api";
+import { CatalogModel, ModelList, MongoConnector, SecretProvider, SecretState, SecretUpdate, Settings, Status, Transcript, request } from "./api";
 import { CSS } from "./styles";
 
 const LANGUAGES: Array<[string, string]> = [
@@ -23,6 +23,7 @@ export default function SettingsPage(): React.ReactElement {
     const [connectors, setConnectors] = useState<MongoConnector[]>([]);
     const [collections, setCollections] = useState<string[]>([]);
     const [models, setModels] = useState<string[]>([]);
+    const [modelList, setModelList] = useState<ModelList | null>(null);
     const [recent, setRecent] = useState<Transcript[]>([]);
     const [apiKeyUpdate, setApiKeyUpdate] = useState<SecretUpdate>({ mode: "keep" });
     const [message, setMessage] = useState<{ kind: "ok" | "info" | "error"; text: string } | null>(null);
@@ -38,6 +39,13 @@ export default function SettingsPage(): React.ReactElement {
             .catch(() => setRecent([]));
     }, []);
 
+    const loadModelFiles = useCallback((dir?: string) => {
+        const q = dir ? `?dir=${encodeURIComponent(dir)}` : "";
+        return request<ModelList>("GET", `/models${q}`)
+            .then(setModelList)
+            .catch((e) => setMessage({ kind: "error", text: e.message }));
+    }, []);
+
     useEffect(() => {
         request<Settings>("GET", "/config")
             .then((s) => {
@@ -48,7 +56,17 @@ export default function SettingsPage(): React.ReactElement {
         request<SecretProvider[]>("GET", "/secrets/providers").then(setProviders).catch(() => setProviders([]));
         request<MongoConnector[]>("GET", "/mongo/connectors").then(setConnectors).catch(() => setConnectors([]));
         loadStatus();
-    }, [loadStatus]);
+        void loadModelFiles();
+    }, [loadStatus, loadModelFiles]);
+
+    const downloading = modelList?.catalog.some((c) => c.downloadState === "downloading") ?? false;
+    useEffect(() => {
+        if (!downloading) {
+            return undefined;
+        }
+        const timer = window.setInterval(() => void loadModelFiles(modelList?.dir), 2000);
+        return () => window.clearInterval(timer);
+    }, [downloading, loadModelFiles, modelList?.dir]);
 
     if (!settings) {
         return (
@@ -135,6 +153,24 @@ export default function SettingsPage(): React.ReactElement {
         }
     };
 
+    /** A pinned SHA-256 belongs to one specific file, so switching models clears it (re-enter the new hash to pin). */
+    const changeModel = (modelPath: string) => {
+        update("whisper", "modelPath", modelPath);
+        if (w.modelSha256) {
+            update("whisper", "modelSha256", "");
+            setMessage({ kind: "info", text: "Model SHA-256 cleared because the model changed. Enter the new file's hash to keep verification on." });
+        }
+    };
+
+    const downloadModel = async (c: CatalogModel) => {
+        try {
+            await request("POST", "/models/download", { id: c.id });
+            await loadModelFiles(modelList?.dir);
+        } catch (e) {
+            setMessage({ kind: "error", text: (e as Error).message });
+        }
+    };
+
     const m = settings.mongo;
     const selectedConnector = connectors.find((c) => c.name === m.connector);
     const w = settings.whisper;
@@ -182,9 +218,34 @@ export default function SettingsPage(): React.ReactElement {
 
             <section className="vt-card">
                 <h2>Whisper (local speech-to-text)</h2>
-                <Field label="Model path" hint="ggml model file on the gateway host. Relative paths resolve against the gateway data directory.">
-                    <input value={w.modelPath} onChange={(e) => update("whisper", "modelPath", e.target.value)} />
+                <Field label="Models folder" hint="Folder on the gateway host holding ggml *.bin models. Relative paths resolve against the gateway data directory.">
+                    <div className="vt-inline">
+                        <input value={w.modelsDir} onChange={(e) => update("whisper", "modelsDir", e.target.value)} />
+                        <button type="button" onClick={() => void loadModelFiles(w.modelsDir)}>Refresh</button>
+                    </div>
                 </Field>
+                <Field label="Model" hint={modelList && !modelList.exists ? `Folder not found: ${modelList.resolvedDir}` : "Choose a model from the folder. Larger models are more accurate but slower and need more RAM; *.en models are English-only."}>
+                    <select value={w.modelPath} onChange={(e) => changeModel(e.target.value)}>
+                        {modelOptions(w.modelsDir, w.modelPath, modelList).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                </Field>
+                <details className="vt-models">
+                    <summary>Download more models</summary>
+                    <p className="vt-hint">Official whisper.cpp models from Hugging Face are saved into the models folder above (save settings first if you changed it). q5 = quantized, about a third of the size.</p>
+                    <table>
+                        <tbody>
+                            {(modelList?.catalog ?? []).map((c) => (
+                                <tr key={c.id}>
+                                    <td>{c.file}</td>
+                                    <td>~{c.approxMb >= 1000 ? `${(c.approxMb / 1000).toFixed(1)} GB` : `${c.approxMb} MB`}</td>
+                                    <td>{c.multilingual ? "multilingual" : "English only"}</td>
+                                    <td>{c.note}</td>
+                                    <td><DownloadCell model={c} onDownload={() => downloadModel(c)} /></td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </details>
                 <Field label="Model SHA-256 (recommended)" hint="If set, the gateway refuses to load a model file whose hash differs. whisper.cpp can crash the gateway on malformed model files.">
                     <input value={w.modelSha256} onChange={(e) => update("whisper", "modelSha256", e.target.value.trim().toLowerCase())} placeholder="64 hex characters" />
                 </Field>
@@ -396,5 +457,38 @@ function SecretEditor(props: {
                 ) : null}
             </div>
         </div>
+    );
+}
+
+/** Dropdown entries: the *.bin files found in the models folder, plus the saved path if it is not among them. */
+function modelOptions(dir: string, current: string, list: ModelList | null): Array<{ value: string; label: string }> {
+    const base = dir.replace(/[\/]+$/, "");
+    const options = (list?.files ?? []).map((f) => ({
+        value: `${base}/${f.name}`,
+        label: `${f.name} (${formatSize(f.sizeBytes)}, ${f.multilingual ? "multilingual" : "English only"})`,
+    }));
+    if (!options.some((o) => o.value === current)) {
+        options.unshift({ value: current, label: `${current} (not in the models folder)` });
+    }
+    return options;
+}
+
+function formatSize(bytes: number): string {
+    return bytes >= 1e9 ? `${(bytes / 1e9).toFixed(1)} GB` : `${Math.round(bytes / 1e6)} MB`;
+}
+
+function DownloadCell({ model, onDownload }: { model: CatalogModel; onDownload: () => void }): React.ReactElement {
+    if (model.installed) {
+        return <span>Installed</span>;
+    }
+    if (model.downloadState === "downloading") {
+        const pct = model.bytesTotal ? Math.min(99, Math.round(((model.bytesDone ?? 0) / model.bytesTotal) * 100)) : 0;
+        return <span>Downloading {pct}%</span>;
+    }
+    return (
+        <span>
+            <button type="button" onClick={onDownload}>Download</button>
+            {model.downloadState === "failed" ? <span className="vt-hint"> Failed: {model.error}</span> : null}
+        </span>
     );
 }

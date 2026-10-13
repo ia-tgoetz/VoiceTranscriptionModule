@@ -39,6 +39,7 @@ export interface Settings {
         maxConcurrentTranscriptions: number;
         modelSha256: string;
         noiseFilter: "off" | "standard" | "strict";
+        modelsDir: string;
     };
     llm: {
         enabled: boolean;
@@ -58,6 +59,34 @@ export interface Status {
     mongo: { configured: boolean; connected: boolean; error?: string; connector: string; database?: string; collection: string };
     llm: { enabled: boolean; provider: string; model: string };
     openRecordings: number;
+}
+
+export interface ModelFile {
+    name: string;
+    sizeBytes: number;
+    multilingual: boolean;
+}
+
+export interface CatalogModel {
+    id: string;
+    file: string;
+    approxMb: number;
+    multilingual: boolean;
+    note: string;
+    installed: boolean;
+    downloadState?: "downloading" | "done" | "failed";
+    bytesDone?: number;
+    bytesTotal?: number;
+    error?: string;
+    sha256?: string;
+}
+
+export interface ModelList {
+    dir: string;
+    resolvedDir: string;
+    exists: boolean;
+    files: ModelFile[];
+    catalog: CatalogModel[];
 }
 
 export interface MongoConnector {

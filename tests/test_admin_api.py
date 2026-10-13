@@ -142,3 +142,25 @@ def test_model_checksum_mismatch_blocks_load(client):
     finally:
         client.put("/config", json=module_settings())
         wait_until(lambda: client.get("/status").json()["whisper"]["ready"], 60, "Whisper model to reload")
+
+
+def test_models_lists_bin_files_and_catalog(client):
+    r = client.get("/models")
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["exists"] is True
+    assert any(f["name"] == "ggml-tiny.bin" for f in body["files"])
+    tiny = next(c for c in body["catalog"] if c["id"] == "tiny")
+    assert tiny["installed"] is True
+    assert {"base", "small", "medium", "large-v3"} <= {c["id"] for c in body["catalog"]}
+
+
+def test_models_dir_param_browses_other_folder(client):
+    r = client.get("/models", params={"dir": "voicetranscription/does-not-exist"})
+    assert r.status_code == 200
+    assert r.json()["exists"] is False and r.json()["files"] == []
+
+
+def test_model_download_rejects_unknown_and_installed(client):
+    assert client.post("/models/download", json={"id": "../../evil"}).status_code == 404
+    assert client.post("/models/download", json={"id": "tiny"}).status_code == 409

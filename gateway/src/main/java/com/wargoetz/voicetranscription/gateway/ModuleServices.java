@@ -24,6 +24,7 @@ import com.wargoetz.voicetranscription.gateway.mongo.TranscriptDocument;
 import com.wargoetz.voicetranscription.gateway.recording.RecordingManager;
 import com.wargoetz.voicetranscription.gateway.recording.RecordingSession;
 import com.wargoetz.voicetranscription.gateway.web.ApiException;
+import com.wargoetz.voicetranscription.gateway.whisper.ModelCatalog;
 import com.wargoetz.voicetranscription.gateway.whisper.WhisperService;
 
 /**
@@ -40,6 +41,7 @@ public final class ModuleServices {
     final WhisperService whisper = new WhisperService();
     final MongoService mongo;
     final LlmClient llm = new LlmClient();
+    final ModelCatalog models = new ModelCatalog();
     final RecordingManager recordings;
 
     /** Model loads can take seconds; never do them on the config/gateway thread. */
@@ -61,14 +63,17 @@ public final class ModuleServices {
     }
 
     void startup() {
+        models.setDownloadTarget(() -> resolveModelPath(settings().whisper().modelsDir()));
         settingsHandler.startup();
         TranscriptionSettings initial = settingsHandler.getResource();
+        ModelBootstrap.installBundledModels(resolveModelPath(initial.whisper().modelsDir()));
         configExecutor.execute(() -> apply(initial));
         maintenance.scheduleWithFixedDelay(() -> recordings.sweep(RECORDING_IDLE_MS), 1, 1, TimeUnit.MINUTES);
         maintenance.scheduleWithFixedDelay(this::runRetention, 5, 360, TimeUnit.MINUTES);
     }
 
     void shutdown() {
+        models.shutdown();
         maintenance.shutdownNow();
         configExecutor.shutdownNow();
         recordings.clear();
@@ -95,6 +100,10 @@ public final class ModuleServices {
 
     public MongoService mongo() {
         return mongo;
+    }
+
+    public ModelCatalog models() {
+        return models;
     }
 
     public LlmClient llm() {

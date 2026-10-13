@@ -32,6 +32,7 @@ public final class SettingsJson {
         whisper.addProperty("maxConcurrentTranscriptions", w.maxConcurrentTranscriptions());
         whisper.addProperty("modelSha256", w.modelSha256());
         whisper.addProperty("noiseFilter", w.noiseFilter());
+        whisper.addProperty("modelsDir", w.modelsDir());
 
         JsonObject llm = new JsonObject();
         TranscriptionSettings.Llm l = s.llm();
@@ -73,7 +74,8 @@ public final class SettingsJson {
                 integer(w, "maxRecordingSeconds", cw.maxRecordingSeconds()),
                 integer(w, "maxConcurrentTranscriptions", cw.maxConcurrentTranscriptions()),
                 str(w, "modelSha256", cw.modelSha256()),
-                str(w, "noiseFilter", cw.noiseFilter()));
+                str(w, "noiseFilter", cw.noiseFilter()),
+                str(w, "modelsDir", cw.modelsDir()));
 
             JsonObject l = obj(in, "llm");
             TranscriptionSettings.Llm cl = current.llm();

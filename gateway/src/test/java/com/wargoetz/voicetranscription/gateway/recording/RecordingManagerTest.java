@@ -167,8 +167,8 @@ class RecordingManagerTest {
 
     @Test
     void effectiveLanguage() {
-        TranscriptionSettings.Whisper fixed = new TranscriptionSettings.Whisper(null, "de", false, 0, 0, 0, 0, 0, null, null);
-        TranscriptionSettings.Whisper auto = new TranscriptionSettings.Whisper(null, "de", true, 0, 0, 0, 0, 0, null, null);
+        TranscriptionSettings.Whisper fixed = new TranscriptionSettings.Whisper(null, "de", false, 0, 0, 0, 0, 0, null, null, null);
+        TranscriptionSettings.Whisper auto = new TranscriptionSettings.Whisper(null, "de", true, 0, 0, 0, 0, 0, null, null, null);
         assertEquals("de", RecordingManager.effectiveLanguage("", fixed));
         assertEquals("auto", RecordingManager.effectiveLanguage("", auto));
         assertEquals("fr", RecordingManager.effectiveLanguage("fr", auto));

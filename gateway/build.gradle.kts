@@ -19,6 +19,37 @@ val extractMongoConnectorApi by tasks.registering(Sync::class) {
 
 tasks.named("compileJava") { dependsOn(extractMongoConnectorApi) }
 
+// Whisper models shipped inside the gateway jar and copied to <data>/voicetranscription/models/ on first
+// startup (ModelBootstrap). The source files are the ones the docker test stack mounts; they are gitignored,
+// so each is downloaded here when missing.
+val bundledModelNames = listOf("tiny", "base")
+
+val fetchBundledModels by tasks.registering {
+    description = "Downloads the bundled ggml models into docker/models/ when they are not already there."
+    val files = bundledModelNames.map { rootProject.file("docker/models/ggml-$it.bin") }
+    outputs.files(files)
+    doLast {
+        bundledModelNames.zip(files).forEach { (name, file) ->
+            if (file.isFile && file.length() > 0L) return@forEach
+            file.parentFile.mkdirs()
+            val part = File(file.parentFile, "ggml-$name.bin.part")
+            uri("https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-$name.bin").toURL().openStream().use { input ->
+                part.outputStream().use { input.copyTo(it) }
+            }
+            part.renameTo(file)
+        }
+    }
+}
+
+tasks.named<ProcessResources>("processResources") {
+    dependsOn(fetchBundledModels)
+    bundledModelNames.forEach { name ->
+        from(rootProject.file("docker/models/ggml-$name.bin")) { into("models") }
+    }
+    // Runtime libraries whisper.cpp needs (OpenMP / VC++), used only when the host lacks them (NativeRuntime).
+    from("src/main/native") { into("native") }
+}
+
 dependencies {
     implementation(projects.common)
 

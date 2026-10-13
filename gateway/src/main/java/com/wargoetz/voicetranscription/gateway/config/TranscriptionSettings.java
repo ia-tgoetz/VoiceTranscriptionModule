@@ -18,7 +18,8 @@ import com.wargoetz.voicetranscription.common.VoiceTranscriptionModule;
  */
 public record TranscriptionSettings(Mongo mongo, Whisper whisper, Llm llm) {
 
-    public static final String DEFAULT_MODEL_PATH = "voicetranscription/models/ggml-base.bin";
+    public static final String DEFAULT_MODELS_DIR = "voicetranscription/models";
+    public static final String DEFAULT_MODEL_PATH = DEFAULT_MODELS_DIR + "/ggml-tiny.bin";
 
     public static final String DEFAULT_SYSTEM_PROMPT =
         "You are an assistant for industrial operations. Summarize the operator's spoken note in 1-3 "
@@ -39,7 +40,8 @@ public record TranscriptionSettings(Mongo mongo, Whisper whisper, Llm llm) {
 
     /**
      * Whisper engine + recording policy. {@code modelPath} is resolved against the gateway data dir when
-     * relative. {@code retentionDays} = 0 keeps transcripts forever. {@code modelSha256}, when set, must match
+     * relative; {@code modelsDir} is the folder whose {@code *.bin} files the settings page offers as choices.
+     * {@code retentionDays} = 0 keeps transcripts forever. {@code modelSha256}, when set, must match
      * the model file or it is not loaded: whisper.cpp crashes on some malformed model files
      * (CVE-2026-10298, CVE-2026-17513) and a native crash takes the whole gateway JVM down with it.
      */
@@ -53,10 +55,12 @@ public record TranscriptionSettings(Mongo mongo, Whisper whisper, Llm llm) {
         int maxRecordingSeconds,
         int maxConcurrentTranscriptions,
         String modelSha256,
-        String noiseFilter
+        String noiseFilter,
+        String modelsDir
     ) {
         public Whisper {
             modelPath = blankTo(modelPath, DEFAULT_MODEL_PATH);
+            modelsDir = blankTo(modelsDir, DEFAULT_MODELS_DIR);
             defaultLanguage = blankTo(defaultLanguage, "en").toLowerCase();
             threads = clamp(threads, 1, 32, 4);
             chunkIntervalMs = clamp(chunkIntervalMs, 500, 30_000, 3000);
@@ -91,7 +95,7 @@ public record TranscriptionSettings(Mongo mongo, Whisper whisper, Llm llm) {
 
     public TranscriptionSettings {
         mongo = mongo != null ? mongo : new Mongo(null, null);
-        whisper = whisper != null ? whisper : new Whisper(null, null, false, 0, 0, 0, 0, 0, null, null);
+        whisper = whisper != null ? whisper : new Whisper(null, null, false, 0, 0, 0, 0, 0, null, null, null);
         llm = llm != null ? llm : new Llm(false, null, null, null, null, null, 0, 0.2);
     }
 

@@ -72,7 +72,10 @@ public final class WhisperService {
         try {
             closeEngine();
             if (!ensureLibrary()) {
-                status = "native library failed to load: " + libraryError;
+                status = "native library failed to load: " + libraryError
+                    + (String.valueOf(libraryError).contains("libgomp")
+                        ? " - install the OpenMP runtime on the gateway host (Debian/Ubuntu: apt-get install libgomp1)"
+                        : "");
                 return;
             }
             if (!Files.isRegularFile(modelPath)) {
@@ -182,7 +185,9 @@ public final class WhisperService {
                         e.jni().fullGetSegmentTimestamp1FromState(state, i),
                         e.jni().fullGetSegmentTextFromState(state, i)));
                 }
-                return Optional.of(new Result(segments, System.currentTimeMillis() - start));
+                long elapsed = System.currentTimeMillis() - start;
+                warnIfSlow(elapsed, samples.length, threads, e.modelPath());
+                return Optional.of(new Result(segments, elapsed));
             } finally {
                 e.states().offer(state);
             }
@@ -191,6 +196,20 @@ public final class WhisperService {
             return Optional.empty();
         } finally {
             lock.readLock().unlock();
+        }
+    }
+
+    private volatile long lastSlowWarn;
+
+    /** Whisper slower than real time means streaming partials fall behind; say why, at most every 30 s. */
+    private void warnIfSlow(long elapsedMs, int samples, int threads, Path model) {
+        long audioMs = samples * 1000L / 16_000;
+        long now = System.currentTimeMillis();
+        if (elapsedMs > audioMs && now - lastSlowWarn > 30_000) {
+            lastSlowWarn = now;
+            log.warnf("Transcribing %d ms of audio took %d ms (slower than real time) with %s on %d thread(s); "
+                + "use a smaller/quantized model, more threads or CPU cores, or check the CPU supports AVX2.",
+                audioMs, elapsedMs, model.getFileName(), threads);
         }
     }
 
@@ -229,6 +248,7 @@ public final class WhisperService {
         if (libraryLoaded) {
             return true;
         }
+        NativeRuntime.ensureLoaded();
         try {
             WhisperJNI.loadLibrary(msg -> log.debug(msg));
             // Disables the native->Java log proxy (see class docs) and whisper.cpp's default stderr logging.

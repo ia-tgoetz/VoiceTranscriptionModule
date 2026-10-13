@@ -269,6 +269,7 @@ Native loading:
   `ignition.conf`.
 * A JNI library binds to **one classloader per JVM**. 8.3 loads modules only at startup, so this is safe;
   never try to hot-reload the module.
+* **No host prerequisites.** The Linux build links `libgomp.so.1` (OpenMP) and the Windows build links the VC++ runtime (`vcruntime140`, `vcruntime140_1`, `msvcp140`, `vcomp140`). `NativeRuntime` ships those under `native/<platform>/` (linux-amd64/aarch64/armhf, windows-amd64; sources and licences in `gateway/src/main/native/NOTICE.txt`) and pre-loads the bundled copy only when the host lacks it, before `WhisperJNI.loadLibrary()`. Verified on the 8.3.10 Linux image with `libgomp.so.1` removed; the Windows path is unit-tested for presence only.
 * Windows' bundled build requires AVX2/FMA/F16C. Verified working on the Linux `inductiveautomation/ignition:8.3.10` image.
 
 Concurrency — whisper-jni keeps contexts/states in **global, unsynchronised `std::map`s**:
@@ -403,7 +404,7 @@ Component behaviour (`VoiceRecorder.tsx`):
   stays open across recordings (shown as "Sharing audio: … · Stop sharing") so push-to-talk doesn't reopen
   the picker every time; it ends via "Stop sharing", the browser's own sharing bar, or unmount. If the user
   shares without audio, the component says so instead of recording silence.
-* **Capture** (`AudioCapture.ts`): the chosen stream → `MediaRecorder.start(chunkIntervalMs)`. On every
+* **Capture** (`AudioCapture.ts`): the chosen stream → `MediaRecorder.start(chunkIntervalMs)`, where the interval is the component's `chunkIntervalMs` if > 0, else the gateway value returned by the start request (re-read every recording), clamped to 500-30000 ms (`resolveChunkInterval`). On every
   `ondataavailable`, decode the *cumulative* blob with `decodeAudioData`, resample to 16 kHz mono with an
   `OfflineAudioContext`, and upload only the new samples as `audio/L16`. Partial containers that a browser
   can't decode are skipped; the final decode after `stop()` always delivers everything.

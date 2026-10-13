@@ -13,6 +13,10 @@ export const CSS = `
 .vt-inline { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .vt-inline > input { flex: 1 1 200px; }
 .vt-check { display: flex; gap: 6px; align-items: center; font-weight: normal; }
+.vt-models { margin: 4px 0 12px; }
+.vt-models summary { cursor: pointer; font-weight: 600; }
+.vt-models table { border-collapse: collapse; margin-top: 8px; }
+.vt-models td { padding: 3px 12px 3px 0; font-size: 13px; }
 .vt-hint { color: #5f6773; font-size: 12px; font-weight: normal; }
 .vt-page button { padding: 6px 12px; border: 1px solid #b8bec7; border-radius: 4px; background: #f6f7f9; cursor: pointer; }
 .vt-page button.vt-primary { background: #2c6ecb; border-color: #2c6ecb; color: #fff; }

@@ -29,7 +29,7 @@ Requirements: JDK 17, Node 18+ (npm on PATH), Docker. Browser tests use a local 
 1. Install the MongoDB Connector module; create a connector under *Connections > Service Connectors*. The
    database must already exist (the connector refuses to connect otherwise) — create it and a
    `timestamp` index on the target collection.
-2. Copy a Whisper ggml model to `<ignition>/data/voicetranscription/models/` (default `ggml-base.bin`).
+2. The module bundles `ggml-tiny.bin` and `ggml-base.bin` and copies them to `<ignition>/data/voicetranscription/models/` on first startup (default model; never overwrites an existing file). In *Settings > Whisper*, set the **Models folder** and pick any `*.bin` in it from the **Model** dropdown; **Download more models** fetches tiny/base/small/medium/large-v3 (plain, English-only `.en`, and q5 quantized) from the official whisper.cpp repository into that folder. The Whisper/OpenMP runtime libraries (Linux) and VC++ runtime (Windows) are bundled, so nothing needs installing on the host.
 3. Install the **signed** `build/OfflineVoiceTranscription.modl` (signed with the WARGoetz certificate, the
    same one as ArchitectureBuilderReactFlow; the gateway asks once to trust it) and restart the gateway.
 4. *Services > Voice Transcription > Settings*: pick the connector + collection, check the model path,

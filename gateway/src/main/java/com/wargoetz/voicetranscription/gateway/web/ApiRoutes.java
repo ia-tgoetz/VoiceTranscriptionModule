@@ -2,10 +2,15 @@ package com.wargoetz.voicetranscription.gateway.web;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import com.inductiveautomation.ignition.common.gson.JsonArray;
 import com.inductiveautomation.ignition.common.gson.JsonElement;
@@ -32,6 +37,7 @@ import com.wargoetz.voicetranscription.gateway.mongo.MongoService;
 import com.wargoetz.voicetranscription.gateway.mongo.TranscriptDocument;
 import com.wargoetz.voicetranscription.gateway.recording.RecordingManager;
 import com.wargoetz.voicetranscription.gateway.recording.RecordingSession;
+import com.wargoetz.voicetranscription.gateway.whisper.ModelCatalog;
 import jakarta.servlet.http.HttpServletResponse;
 
 /**
@@ -78,6 +84,8 @@ public final class ApiRoutes {
         route(routes, "/config", HttpMethod.GET, admin(PermissionType.READ), this::getConfig);
         route(routes, "/config", HttpMethod.PUT, admin(PermissionType.WRITE), this::putConfig);
         route(routes, "/config", HttpMethod.POST, admin(PermissionType.WRITE), this::putConfig);
+        route(routes, "/models", HttpMethod.GET, admin(PermissionType.READ), this::whisperModels);
+        route(routes, "/models/download", HttpMethod.POST, admin(PermissionType.WRITE), this::downloadModel);
         route(routes, "/mongo/connectors", HttpMethod.GET, admin(PermissionType.READ),
             (req, res) -> services.mongo().listConnectors());
         route(routes, "/mongo/collections", HttpMethod.GET, admin(PermissionType.READ), this::collections);
@@ -166,6 +174,77 @@ public final class ApiRoutes {
         }
         services.applyNow(next);
         return SettingsJson.toJson(next);
+    }
+
+    /**
+     * Whisper models: the {@code *.bin} files in {@code ?dir=} (defaults to the saved models folder, so the
+     * page can browse a folder before saving it), the downloadable catalogue, and download progress.
+     */
+    private JsonElement whisperModels(RequestContext req, HttpServletResponse res) throws ApiException {
+        String requested = Optional.ofNullable(req.getParameter("dir")).filter(d -> !d.isBlank())
+            .orElse(services.settings().whisper().modelsDir());
+        Path dir;
+        try {
+            dir = services.resolveModelPath(requested);
+        } catch (InvalidPathException e) {
+            throw new ApiException(400, "Invalid folder: " + requested);
+        }
+        JsonObject out = new JsonObject();
+        out.addProperty("dir", requested);
+        out.addProperty("resolvedDir", dir.toString());
+        out.addProperty("exists", Files.isDirectory(dir));
+        JsonArray files = new JsonArray();
+        Set<String> installed = new HashSet<>();
+        for (ModelCatalog.Installed f : ModelCatalog.list(dir)) {
+            JsonObject o = new JsonObject();
+            o.addProperty("name", f.name());
+            o.addProperty("sizeBytes", f.sizeBytes());
+            o.addProperty("multilingual", f.multilingual());
+            files.add(o);
+            installed.add(f.name());
+        }
+        out.add("files", files);
+        JsonArray catalog = new JsonArray();
+        for (ModelCatalog.Entry e : ModelCatalog.CATALOG) {
+            JsonObject o = new JsonObject();
+            o.addProperty("id", e.id());
+            o.addProperty("file", e.file());
+            o.addProperty("approxMb", e.approxMb());
+            o.addProperty("multilingual", e.multilingual());
+            o.addProperty("note", e.note());
+            o.addProperty("installed", installed.contains(e.file()));
+            ModelCatalog.Download d = services.models().downloads().get(e.id());
+            if (d != null) {
+                o.addProperty("downloadState", d.state());
+                o.addProperty("bytesDone", d.bytesDone());
+                o.addProperty("bytesTotal", d.bytesTotal());
+                if (d.error() != null) {
+                    o.addProperty("error", d.error());
+                }
+                if (d.sha256() != null) {
+                    o.addProperty("sha256", d.sha256());
+                }
+            }
+            catalog.add(o);
+        }
+        out.add("catalog", catalog);
+        return out;
+    }
+
+    /** Body {@code {"id": "<catalogue id>"}}; downloads into the saved models folder in the background. */
+    private JsonElement downloadModel(RequestContext req, HttpServletResponse res) throws ApiException {
+        JsonObject body = readJsonOrEmpty(req);
+        String id = body.has("id") && !body.get("id").isJsonNull() ? body.get("id").getAsString() : "";
+        try {
+            ModelCatalog.Download d = services.models().startDownload(id)
+                .orElseThrow(() -> new ApiException(404, "Unknown model '" + id + "'"));
+            JsonObject out = new JsonObject();
+            out.addProperty("id", d.id());
+            out.addProperty("state", d.state());
+            return out;
+        } catch (IllegalStateException e) {
+            throw new ApiException(409, e.getMessage());
+        }
     }
 
     /** Collections for {@code ?connector=} (defaults to the saved connector) so the page can browse before saving. */

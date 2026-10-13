@@ -1,0 +1,16 @@
+Third-party runtime libraries bundled in this module (loaded only when the host does not provide them)
+=====================================================================================================
+
+linux-amd64 / linux-aarch64 / linux-armhf : libgomp.so.1
+    GNU OpenMP runtime, taken unmodified from the Debian 11 (bullseye) package libgomp1 10.2.1-6.
+    Licence: GNU GPL v3 or later with the GCC Runtime Library Exception v3.1.
+    Source:  https://packages.debian.org/source/bullseye/gcc-10  (gcc-10 10.2.1-6)
+             https://gcc.gnu.org/onlinedocs/libgomp/
+    sha256 (extracted library):
+      linux-amd64   e80b85fef97ff22f2ce71b5438ba6effada3d635498336d836df95647f7325b9
+      linux-aarch64 d199903e13e452411c815135b2dc447754189c3a5fa56ce49eebf5695824f0ad
+      linux-armhf   80ab12fa2eed13f8787352981136722565e0a474a57c94afd6acb756d21fe4ae
+
+windows-amd64 : msvcp140.dll, vcruntime140.dll, vcruntime140_1.dll, vcomp140.dll
+    Microsoft Visual C++ 2015-2022 Redistributable (x64), version 14.51.36247.0, redistributed unmodified
+    for app-local deployment under the Microsoft Visual C++ Redistributable licence terms.
