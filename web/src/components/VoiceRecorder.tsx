@@ -9,8 +9,8 @@ import {
 } from "@inductiveautomation/perspective-client";
 import type { SizeObject } from "@inductiveautomation/perspective-common";
 import { AudioCapture, AudioSource, TrackName, needsDisplayAudio, tracksFor } from "../audio/AudioCapture";
-import { formatDuration, isEditableTarget } from "../audio/pcm";
-import { ClientConfig, RecorderApi, SubmittedDocument } from "../api/RecorderApi";
+import { formatDuration, isEditableTarget, resolveChunkInterval } from "../audio/pcm";
+import { RecorderApi, SubmittedDocument } from "../api/RecorderApi";
 import { compose, marker, parseLine, pendingText } from "../transcript";
 
 /** Must equal AudioRecorder.COMPONENT_ID on the Java side. */
@@ -64,7 +64,6 @@ export class VoiceRecorder extends Component<ComponentProps<VoiceRecorderProps>,
     };
 
     private api?: RecorderApi;
-    private clientConfig?: ClientConfig;
     private capture?: AudioCapture;
     private recordingId?: string;
     /** Upload sequence number per track ("" = single-source recording). */
@@ -176,12 +175,13 @@ export class VoiceRecorder extends Component<ComponentProps<VoiceRecorderProps>,
         this.writeProp("error", "");
         try {
             const api = this.getApi();
-            const cfg = this.clientConfig || (this.clientConfig = await api.clientConfig());
             const started = await api.start((this.props.props.language || "").trim().toLowerCase(), tracksFor(source),
                 this.props.props.showTimestamps, timeOffset);
             this.recordingId = started.recordingId;
             this.seq = {};
-            const interval = this.props.props.chunkIntervalMs > 0 ? this.props.props.chunkIntervalMs : cfg.chunkIntervalMs;
+            // started.chunkIntervalMs is read from the gateway on every start, so a settings change applies
+            // to the next recording without a page reload.
+            const interval = resolveChunkInterval(this.props.props.chunkIntervalMs, started.chunkIntervalMs);
             this.capture = new AudioCapture({
                 chunkIntervalMs: interval,
                 source,

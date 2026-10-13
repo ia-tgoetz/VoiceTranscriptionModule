@@ -54,7 +54,7 @@
         },
         "chunkIntervalMs": {
             "type": "number",
-            "description": "How often (ms) audio is sliced and uploaded for a partial transcript. 0 uses the gateway setting.",
+            "description": "How often (ms) audio is sliced and uploaded for a partial transcript. 0 uses the gateway setting (re-read at every recording start). Values are clamped to 500-30000.",
             "default": 0,
             "minimum": 0
         },

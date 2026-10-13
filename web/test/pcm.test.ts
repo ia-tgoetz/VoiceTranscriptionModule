@@ -1,7 +1,7 @@
 // Run with: npm test  (Node >= 22.6 strips TypeScript types natively)
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { downmix, floatToInt16, formatDuration, isEditableTarget, resampleLinear } from "../src/audio/pcm.ts";
+import { downmix, floatToInt16, formatDuration, isEditableTarget, resampleLinear, resolveChunkInterval } from "../src/audio/pcm.ts";
 
 test("floatToInt16 clamps and scales", () => {
     const out = floatToInt16(new Float32Array([0, 1, -1, 2, -2, 0.5]));
@@ -36,4 +36,12 @@ test("push-to-talk ignores typing targets", () => {
     assert.equal(isEditableTarget({ tagName: "DIV", isContentEditable: true }), true);
     assert.equal(isEditableTarget({ tagName: "DIV" }), false);
     assert.equal(isEditableTarget(null), false);
+});
+
+test("resolveChunkInterval: 0 defers to the gateway, overrides are clamped to 500-30000", () => {
+    assert.equal(resolveChunkInterval(0, 3000), 3000);
+    assert.equal(resolveChunkInterval(1500, 3000), 1500);
+    assert.equal(resolveChunkInterval(100, 3000), 500);
+    assert.equal(resolveChunkInterval(120000, 3000), 30000);
+    assert.equal(resolveChunkInterval(0, 0), 500);
 });

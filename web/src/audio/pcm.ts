@@ -64,3 +64,16 @@ export function isEditableTarget(target: { tagName?: string; isContentEditable?:
     const tag = (target.tagName || "").toUpperCase();
     return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable === true;
 }
+
+/** Same bounds the gateway enforces on its own chunk-interval setting. */
+export const MIN_CHUNK_INTERVAL_MS = 500;
+export const MAX_CHUNK_INTERVAL_MS = 30000;
+
+/**
+ * Upload interval for a recording: the component's `chunkIntervalMs` when > 0 (clamped to the gateway's
+ * 500-30000 ms range so a view can't flood the gateway), otherwise the interval the gateway just reported.
+ */
+export function resolveChunkInterval(override: number, gatewayMs: number): number {
+    const wanted = override > 0 ? override : gatewayMs;
+    return Math.min(MAX_CHUNK_INTERVAL_MS, Math.max(MIN_CHUNK_INTERVAL_MS, wanted));
+}
